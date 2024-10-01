@@ -78,7 +78,7 @@ n8n:
   container_name: n8n
   restart: unless-stopped
   ports:
-    - 5678:5678  # Прокси на порт 5678, чтобы n8n был доступен через HTTPS
+    - 443:5678  # Прокси на порт 5678, чтобы n8n был доступен через HTTPS
   volumes:
     - n8n_storage:/home/node/.n8n
     - ./n8n/backup:/backup
