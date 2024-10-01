@@ -151,6 +151,3 @@ services:
     <<: *init-ollama
     depends_on:
       - ollama-gpu
-
-networks:
-  demo:
