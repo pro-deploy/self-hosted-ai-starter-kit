@@ -1,5 +1,3 @@
-version: '3.8'
-
 volumes:
   n8n_storage:
   postgres_storage:
@@ -21,9 +19,6 @@ x-n8n: &service-n8n
     - N8N_PERSONALIZATION_ENABLED=false
     - N8N_ENCRYPTION_KEY
     - N8N_USER_MANAGEMENT_JWT_SECRET
-    - N8N_PROTOCOL=https  # Указываем, что используется HTTPS
-    - N8N_HOST=5.187.83.209  # Указываем ваш домен
-    - N8N_PORT=443  # Порт для HTTPS
   links:
     - postgres
 
@@ -78,21 +73,26 @@ services:
       postgres:
         condition: service_healthy
 
-  n8n:
-    <<: *service-n8n
-    container_name: n8n
-    restart: unless-stopped
-    ports:
-      - 5678:5678  # Этот порт можно оставить, если вы хотите доступ к n8n напрямую
-    volumes:
-      - n8n_storage:/home/node/.n8n
-      - ./n8n/backup:/backup
-      - ./shared:/data/shared
-    depends_on:
-      postgres:
-        condition: service_healthy
-      n8n-import:
-        condition: service_completed_successfully
+n8n:
+  <<: *service-n8n
+  container_name: n8n
+  restart: unless-stopped
+  ports:
+    - 5678:5678  # Прокси на порт 5678, чтобы n8n был доступен через HTTPS
+  volumes:
+    - n8n_storage:/home/node/.n8n
+    - ./n8n/backup:/backup
+    - ./shared:/data/shared
+  environment:
+    - N8N_PROTOCOL=https  # Указываем, что используется HTTPS
+    - N8N_HOST=localhost  # Указываем локальный хост
+    - N8N_PORT=443  # Порт для HTTPS
+  depends_on:
+    postgres:
+      condition: service_healthy
+    n8n-import:
+      condition: service_completed_successfully
+
 
   qdrant:
     image: qdrant/qdrant
