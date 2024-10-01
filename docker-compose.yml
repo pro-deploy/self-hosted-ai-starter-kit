@@ -22,7 +22,7 @@ x-n8n: &service-n8n
     - N8N_ENCRYPTION_KEY
     - N8N_USER_MANAGEMENT_JWT_SECRET
     - N8N_PROTOCOL=https  # Указываем, что используется HTTPS
-    - N8N_HOST=n8n.aidcorp.ru  # Указываем ваш домен
+    - N8N_HOST=5.187.83.209  # Указываем ваш домен
     - N8N_PORT=443  # Порт для HTTPS
   links:
     - postgres
