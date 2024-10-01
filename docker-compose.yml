@@ -1,10 +1,11 @@
-version: '3.8'  # Убедитесь, что версия поддерживает профили
+version: '3.8'
 
 volumes:
   n8n_storage:
   postgres_storage:
   ollama_storage:
   qdrant_storage:
+  letsencrypt: # Добавлено для хранения сертификатов Let's Encrypt
 
 networks:
   demo:
@@ -46,6 +47,26 @@ x-init-ollama: &init-ollama
     - "sleep 3; OLLAMA_HOST=ollama:11434 ollama pull llama3.1"
 
 services:
+  traefik:
+    image: traefik:v2.5
+    command:
+#      - "--api.insecure=true" # Включите интерфейс управления Traefik (не рекомендуется для продакшена)
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.myresolver.acme.email=mbirkin@internet.ru" # Укажите ваш email
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "letsencrypt:/letsencrypt" # Используйте Docker volume для хранения сертификатов
+    networks:
+      - demo
+
   postgres:
     image: postgres:16-alpine
     networks: ['demo']
@@ -75,25 +96,25 @@ services:
       postgres:
         condition: service_healthy
 
-  n8n:  # Исправлено: теперь находится внутри секции services
+  n8n:
     <<: *service-n8n
     container_name: n8n
     restart: unless-stopped
-    ports:
-      - 443:5678  # Прокси на порт 5678, чтобы n8n был доступен через HTTPS
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.n8n.rule=Host(`n8n.aidcorp.ru`)" # Укажите ваш домен
+      - "traefik.http.routers.n8n.entrypoints=websecure"
+      - "traefik.http.routers.n8n.tls.certresolver=myresolver"
     volumes:
       - n8n_storage:/home/node/.n8n
       - ./n8n/backup:/backup
       - ./shared:/data/shared
-    environment:
-      - N8N_PROTOCOL=https  # Указываем, что используется HTTPS
-      - N8N_HOST=localhost  # Указываем локальный хост
-      - N8N_PORT=443  # Порт для HTTPS
     depends_on:
       postgres:
         condition: service_healthy
       n8n-import:
         condition: service_completed_successfully
+
   qdrant:
     image: qdrant/qdrant
     container_name: qdrant
@@ -130,3 +151,6 @@ services:
     <<: *init-ollama
     depends_on:
       - ollama-gpu
+
+networks:
+  demo:
