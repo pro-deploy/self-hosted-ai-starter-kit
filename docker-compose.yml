@@ -1,3 +1,5 @@
+version: '3.8'
+
 volumes:
   n8n_storage:
   postgres_storage:
@@ -19,6 +21,9 @@ x-n8n: &service-n8n
     - N8N_PERSONALIZATION_ENABLED=false
     - N8N_ENCRYPTION_KEY
     - N8N_USER_MANAGEMENT_JWT_SECRET
+    - N8N_PROTOCOL=https  # Указываем, что используется HTTPS
+    - N8N_HOST=n8n.aidcorp.ru  # Указываем ваш домен
+    - N8N_PORT=443  # Порт для HTTPS
   links:
     - postgres
 
@@ -78,7 +83,7 @@ services:
     container_name: n8n
     restart: unless-stopped
     ports:
-      - 5678:5678
+      - 5678:5678  # Этот порт можно оставить, если вы хотите доступ к n8n напрямую
     volumes:
       - n8n_storage:/home/node/.n8n
       - ./n8n/backup:/backup
